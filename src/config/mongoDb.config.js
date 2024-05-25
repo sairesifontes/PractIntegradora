@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const urlDb = "mongodb+srv://sairesifontes:Fiestalas17K@ecommerce.japcrgv.mongodb.net/ecommerce";
+const urlDb = "Link en la entrega";
 
 export const connectMongoDB = async () => {
 try {
