@@ -5,12 +5,32 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const licores = await licorDao.getAll();
+    const { limit, page, sort, category, status } = req.query;
+    const options = {
+      limit: limit || 10,
+      page: page || 1,
+      sort: {
+        price: sort === "asc" ? 1 : -1,
+      },
+      lean: true,
+    };
+
+    if (status) {
+      const licores = await licorDao.getAll({ status: status }, options);
+      return res.status(200).json({ status: "success", payload: licores });
+    }
+
+    if (category) {
+      const licores = await licorDao.getAll({ categoria: category }, options);
+      return res.status(200).json({ status: "success", payload: licores });
+    }
+
+    const licores = await licorDao.getAll({}, options);
 
     res.status(200).json({ status: "success", payload: licores });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Ocurrió un error al obtener los licores." });
+    console.log(error);
+    res.status(500).json({ status: "Error", msg: "Error interno del servidor" });
   }
 });
 
@@ -19,12 +39,14 @@ router.get("/:lid", async (req, res) => {
     const { lid } = req.params;
 
     const licor = await licorDao.getById(lid);
-    if (!licor) return res.status(404).json({ status: "Error", message: `Licor con el id ${lid} no encontrado` });
+    if (!licor) {
+      return res.status(404).json({ status: "Error", msg: `Licor con el id ${lid} no encontrado` });
+    }
 
     res.status(200).json({ status: "success", payload: licor });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Ocurrió un error al obtener el licor." });
+    console.log(error);
+    res.status(500).json({ status: "Error", msg: "Error interno del servidor" });
   }
 });
 
@@ -33,10 +55,10 @@ router.post("/", async (req, res) => {
     const licor = req.body;
     const newLicor = await licorDao.create(licor);
 
-    res.status(200).json({ status: "success", payload: newLicor });
+    res.status(201).json({ status: "success", payload: newLicor });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Ocurrió un error al crear el licor." });
+    console.log(error);
+    res.status(500).json({ status: "Error", msg: "Error interno del servidor" });
   }
 });
 
@@ -45,26 +67,30 @@ router.put("/:lid", async (req, res) => {
     const { lid } = req.params;
     const licorData = req.body;
 
-    const updatedLicor = await licorDao.update(lid, licorData);
-    if (!updatedLicor) return res.status(404).json({ status: "Error", message: `Licor con el id ${lid} no encontrado` });
+    const updateLicor = await licorDao.update(lid, licorData);
+    if (!updateLicor) {
+      return res.status(404).json({ status: "Error", msg: `Licor con el id ${lid} no encontrado` });
+    }
 
-    res.status(200).json({ status: "success", payload: updatedLicor });
+    res.status(200).json({ status: "success", payload: updateLicor });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Ocurrió un error al actualizar el licor." });
+    console.log(error);
+    res.status(500).json({ status: "Error", msg: "Error interno del servidor" });
   }
 });
 
 router.delete("/:lid", async (req, res) => {
   try {
     const { lid } = req.params;
-    const deletedLicor = await licorDao.deleteOne(lid);
-    if (!deletedLicor) return res.status(404).json({ status: "Error", message: `Licor con el id ${lid} no encontrado` });
+    const licor = await licorDao.deleteOne(lid);
+    if (!licor) {
+      return res.status(404).json({ status: "Error", msg: `Licor con el id ${lid} no encontrado` });
+    }
 
-    res.status(200).json({ status: "success", message: "Licor eliminado" });
+    res.status(200).json({ status: "success", payload: "Licor eliminado" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Ocurrió un error al eliminar el licor." });
+    console.log(error);
+    res.status(500).json({ status: "Error", msg: "Error interno del servidor" });
   }
 });
 

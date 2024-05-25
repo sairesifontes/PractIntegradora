@@ -1,27 +1,31 @@
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 
-const licorCollection = "licores"
+const licorCollection = "licores";
 
 const licorSchema = new mongoose.Schema({
-nombre: { 
+  nombre: { 
     type: String, 
     required: true 
-},
-precio: { 
+  },
+  precio: { 
     type: Number, 
     required: true 
-},
-categoria: { 
+  },
+  categoria: { 
     type: String, 
     required: true 
-},
-contenidoMl: { 
+  },
+  contenidoMl: { 
     type: Number, 
     required: true 
-},
-imagen: { 
+  },
+  imagen: { 
     type: String, 
-    required: true }
+    required: true 
+  }
 });
+
+licorSchema.plugin(mongoosePaginate);
 
 export const licorModel = mongoose.model(licorCollection, licorSchema);
