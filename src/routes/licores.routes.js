@@ -1,9 +1,10 @@
 import { Router } from "express";
 import licorDao from "../dao/mongoDao/licor.dao.js";
+import { checkLogin } from "../middlewares/login.middleware.js";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", checkLogin, async (req, res) => {
   try {
     const { limit, page, sort, category, status } = req.query;
     const options = {
