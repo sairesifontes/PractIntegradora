@@ -7,7 +7,7 @@ const router = Router();
 
 
 
-router.use("/licores", checkLogin, licoresRouters);
+router.use("/licores", licoresRouters);
 router.use("/carts", cartsRouters);
 router.use("/session", sessionRouters)
 

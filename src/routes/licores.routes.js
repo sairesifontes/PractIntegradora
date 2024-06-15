@@ -4,7 +4,7 @@ import { checkLogin } from "../middlewares/login.middleware.js";
 
 const router = Router();
 
-router.get("/", checkLogin, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { limit, page, sort, category, status } = req.query;
     const options = {
