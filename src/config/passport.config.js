@@ -1,33 +1,72 @@
 import passport from "passport";
 import local from "passport-local";
-import google from "passport-google-oauth20";
-import { hashPassword, checkPassword } from "../utils/hashPassword.js";
-import userDao from "../dao/mongoDao/user.dao.js";
+import jwt from "passport-jwt";
+import userService from "../services/user.services.js";
+import accountService from "../services/account.services.js";
+import { createHash, isValidPassword } from "../utils/hashPassword.js";
+import { cookieExtractor } from "../utils/cookieExtractor.js";
 
 const LocalStrategy = local.Strategy;
-const GoogleStrategy = google.Strategy;
+const JWTStrategy = jwt.Strategy;
+const ExtractJWT = jwt.ExtractJwt;
 
-const initializePassport = () => {
+export const configurePassport = () => {
+  // Estrategia local para el registro
   passport.use(
     "register",
-    new LocalStrategy(
-      { passReqToCallback: true, usernameField: "email" },
-      async (req, username, password, done) => {
+    new LocalStrategy({ passReqToCallback: true, usernameField: "email" }, async (req, username, password, done) => {
+      try {
+        const { firstName, surname } = req.body;
+        const existingUser = await userService.getUser({ email: username });
+        if (existingUser) return done(null, false, { message: "User already exists" });
+
+        const newAccount = await accountService.createAccount({ firstName, surname });
+
+        const newUser = {
+          firstName,
+          surname,
+          email: username,
+          password: createHash(password),
+          account: newAccount._id,
+        };
+
+        const createdUser = await userService.registerUser(newUser);
+
+        await accountService.linkAccountToUser(newAccount._id, { userId: createdUser._id });
+
+        return done(null, createdUser);
+      } catch (error) {
+        return done(error);
+      }
+    })
+  );
+
+  // Estrategia local para el inicio de sesión
+  passport.use(
+    "login",
+    new LocalStrategy({ usernameField: "email" }, async (username, password, done) => {
+      try {
+        const user = await userService.getUser({ email: username });
+        if (!user || !isValidPassword(user, password)) return done(null, false, { message: "Invalid email or password" });
+
+        return done(null, user);
+      } catch (error) {
+        return done(error);
+      }
+    })
+  );
+
+  // Estrategia JWT
+  passport.use(
+    "jwt",
+    new JWTStrategy(
+      {
+        jwtFromRequest: ExtractJWT.fromExtractors([cookieExtractor]),
+        secretOrKey: "secretCode",
+      },
+      async (jwtPayload, done) => {
         try {
-          const { first_name, last_name, email, age } = req.body;
-          const user = await userDao.getByEmail(username);
-          if (user) return done(null, false, { message: "El usuario ya existe" });
-
-          const newUser = {
-            first_name,
-            last_name,
-            email,
-            age,
-            password: hashPassword(password),
-          };
-
-          const createUser = await userDao.create(newUser);
-          return done(null, createUser);
+          return done(null, jwtPayload);
         } catch (error) {
           return done(error);
         }
@@ -35,64 +74,19 @@ const initializePassport = () => {
     )
   );
 
-  passport.use(
-    "login",
-    new LocalStrategy({ usernameField: "email" }, async (username, password, done) => {
-      try {
-        const user = await userDao.getByEmail(username);
-        if (!user || !checkPassword(user, password)) return done(null, false, { message: "email o password inválidos" });
-
-        return done(null, user);
-      } catch (error) {
-        done(error);
-      }
-    })
-  );
-
-  passport.use(
-    "google",
-    new GoogleStrategy(
-      {
-        clientID: "YOUR_GOOGLE_CLIENT_ID",
-        clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
-        callbackURL: "http://localhost:8080/api/session/google",
-      },
-      async (accessToken, refreshToken, profile, cb) => {
-        try {
-          const { name, emails } = profile;
-
-          const user = {
-            first_name: name.givenName,
-            last_name: name.familyName,
-            email: emails[0].value,
-          };
-
-          const existUser = await userDao.getByEmail(emails[0].value);
-          if (existUser) return cb(null, existUser);
-
-          const newUser = await userDao.create(user);
-          cb(null, newUser);
-        } catch (error) {
-          return cb(error);
-        }
-      }
-    )
-  );
-
   passport.serializeUser((user, done) => {
-    done(null, user._id);
+    done(null, user.id);
   });
 
   passport.deserializeUser(async (id, done) => {
-    const user = await userDao.getById(id);
-    done(null, user);
+    try {
+      const user = await userService.getUser({ _id: id});
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 };
-
-export default initializePassport;
-
-
-
 
 
 

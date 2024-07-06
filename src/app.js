@@ -1,77 +1,53 @@
-// import express from "express";
-// import router from "./routes/index.js";
-// import session from "express-session";
-// import { connectMongoDB } from "./config/mongoDb.config.js"
-// import MongoStore from "connect-mongo";
-
-// connectMongoDB();
-
-// const app = express();
-
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// app.use(
-//   session({
-//     store: MongoStore.create({
-//       mongoUrl: "mongodb+srv://sairesifontes:Fiestalas17K@ecommerce.japcrgv.mongodb.net/ecommerce",
-//       ttl: 15,
-//     }),
-//     secret: "CodigoSecreto",
-//     resave: true,
-//   })
-// );
-
-// app.use("/api", router);
-
-// app.listen(8080, () => {
-//   console.log("Escuchando el servidor en el puerto 8080");
-// });
-
-
-
 import express from "express";
-import router from "./routes/index.js";
-import { connectMongoDB } from "./config/mongoDb.config.js";
+import handlebars from "express-handlebars";
 import session from "express-session";
-import MongoStore from "connect-mongo";
-import passport from "passport";
-import initializePassport from "./config/passport.config.js";
 import cookieParser from "cookie-parser";
+import passport from "passport";
 
-// Conectar a MongoDB
-connectMongoDB();
+import _dirname from "./dirname.js";
+import viewRoutes from "./routes/views.routes.js";
+import { connectDB } from "./config/mongoDb.config.js";
+import apiRoutes from "./routes/index.routes.js";
+import { configurePassport } from "./config/passport.config.js";
 
+// Conexión a la base de datos
+connectDB();
+
+const PORT = 8080;
 const app = express();
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser("mi_secreto")); 
 
-// Configuración de sesión
+// Configuración de Handlebars como motor de plantillas
+app.engine("handlebars", handlebars.engine());
+app.set("views", _dirname + "/views");
+app.set("view engine", "handlebars");
+
+// Archivos estáticos
+app.use(express.static("public"));
+
+// Configuración de sesión y cookies
 app.use(
   session({
-    store: MongoStore.create({
-      mongoUrl: "Link en la entrega",
-      ttl: 15 * 60, // Ajusté TTL a segundos
-    }),
-    secret: "mi_codigo_secreto",
+    secret: "codigoSecreto",
     resave: true,
     saveUninitialized: true,
   })
 );
+app.use(cookieParser());
 
-// Inicializar Passport
+// Configuración de Passport
 app.use(passport.initialize());
 app.use(passport.session());
-initializePassport();
+configurePassport();
 
 // Rutas
-app.use("/api", router);
+app.use("/", viewRoutes);  // Rutas de vistas
+app.use("/api", apiRoutes);  // Rutas de API
 
-// Puerto de escucha
-const PORT = 8080;
+// Inicio del servidor
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

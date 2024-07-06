@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 
-const urlDb = "Link en la entrega";
+export const connectDB = async () => {
+  try {
+    await mongoose.connect("mongodb+srv://sairesifontes:Fiestalas17K@ecommerce.japcrgv.mongodb.net/coder-bank") 
+    console.log("Mongo Conectado");
 
-export const connectMongoDB = async () => {
-try {
-    // Conexión con la base de datos
-    mongoose.connect(urlDb);
-    console.log("MongoDB Conectado");
-} catch (error) {
-        console.error("Error al conectar con MongoDB:", error);
+    } catch (error) {
+        console.error("Error al conectar Mongo:", error.message);
     }
 };
